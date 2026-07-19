@@ -65,6 +65,7 @@
   .clockWrap{ text-align:center; margin:18px 0 6px 0; }
   .clock{ font-family:'Baloo 2',sans-serif; font-size:58px; font-weight:700; letter-spacing:1px; }
   .clockLabel{ opacity:.85; font-size:12px; text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
+  .resetTodayLink{ text-align:center; font-size:11px; color:rgba(255,255,255,0.7); margin-top:8px; text-decoration:underline; cursor:pointer; }
 
   .deltaRowWrap{ background:rgba(255,255,255,0.14); border-radius:16px; padding:14px 16px; margin-top:16px; }
   .deltaRowWrap .drow{ display:flex; justify-content:space-between; padding:4px 0; font-size:14px; }
@@ -183,6 +184,7 @@
       <div class="clockWrap">
         <div class="clock mono" id="clockDisplay">00:00</div>
         <div class="clockLabel" id="clockLabel">Today's total</div>
+        <div class="resetTodayLink" id="btnResetToday">Reset today to 00:00</div>
       </div>
       <div class="deltaRowWrap">
         <div class="drow"><div class="k">Monthly delta</div><div class="v mono" id="deltaMonthly">--</div></div>

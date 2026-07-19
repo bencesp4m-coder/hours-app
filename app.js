@@ -400,6 +400,18 @@
 
   el.btnStart.addEventListener('click', doStart);
   el.btnPause.addEventListener('click', doPauseEnd);
+  document.getElementById('btnResetToday').addEventListener('click', ()=>{
+    if(!confirm("Reset today's tracked time to 00:00? This clears only today.")) return;
+    const todayStr = fmtDate(new Date());
+    delete data.days[todayStr];
+    if(data.running.active && data.running.date === todayStr){
+      data.running = { active:false, startTs:null, date:null };
+      if(tickHandle){ clearInterval(tickHandle); tickHandle=null; }
+    }
+    lastAlertBoundary = 0;
+    save(); renderAll();
+    showToast("Today's time reset to 00:00.");
+  });
 
   const navItems = document.querySelectorAll('.nav div');
   const pages = { home:'page-home', stats:'page-stats', report:'page-report', options:'page-options' };
