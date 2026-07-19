@@ -130,6 +130,17 @@
   .entry-date{ font-size:14px; font-weight:500; }
   .entry-dow{ color:var(--text-dim); font-size:11px; margin-left:8px; text-transform:uppercase; letter-spacing:.5px; }
   .entry-time{ font-size:15px; font-weight:700; color:var(--accent); }
+  .entry-time.zero-entry{ color:var(--text-dim); font-weight:500; }
+  .live-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--ok); margin-left:8px; vertical-align:middle; box-shadow:0 0 0 3px rgba(31,174,107,0.18); }
+  .month-block{ background:var(--surface); border:1px solid var(--line); border-radius:20px; overflow:hidden; margin-bottom:14px; box-shadow:0 4px 14px rgba(24,19,34,0.04); }
+  .month-header{ display:flex; justify-content:space-between; align-items:center; padding:16px 18px; cursor:pointer; }
+  .month-name{ font-family:'Baloo 2',sans-serif; font-size:15px; font-weight:700; }
+  .month-meta{ display:flex; align-items:center; gap:10px; }
+  .month-total{ font-size:14px; font-weight:700; color:var(--accent); }
+  .month-chevron{ color:var(--text-dim); font-size:13px; width:14px; text-align:center; }
+  .month-days{ border-top:1px solid var(--line); }
+  .month-days.collapsed{ display:none; }
+  .month-days .entry-row{ padding:12px 18px; }
 
   .modal-overlay{ position:fixed; inset:0; background:rgba(24,19,34,0.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
   .modal-overlay.show{ display:flex; }
@@ -235,6 +246,7 @@
         <label>Reset</label>
         <div class="opt-btn danger" id="btnResetSum">Reset Sum (sets start date to today)</div>
         <div class="opt-btn danger" id="btnResetAll">Erase all tracked time</div>
+        <div class="opt-btn" id="btnExportBackup">Export backup (.json)</div>
       </div>
 
       <div class="opt-group" id="cloudSetupBlock">

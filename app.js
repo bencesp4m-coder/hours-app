@@ -249,26 +249,86 @@
     renderEntriesList();
   }
 
+  let expandedMonths = null;
+
+  function secondsForDayDisplay(dateStr){
+    let secs = data.days[dateStr] || 0;
+    const todayStr = fmtDate(new Date());
+    if(data.running.active && data.running.date === todayStr && dateStr === todayStr){
+      secs += Math.floor((Date.now()-data.running.startTs)/1000);
+    }
+    return secs;
+  }
+
+  function getMonthDaysList(ym){
+    const [y,m] = ym.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const todayStr = fmtDate(new Date());
+    const isCurrentMonth = (ym === todayStr.slice(0,7));
+    const lastDay = isCurrentMonth ? new Date().getDate() : daysInMonth;
+    const list = [];
+    for(let d=lastDay; d>=1; d--){
+      list.push(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+    }
+    return list;
+  }
+
+  function getAllMonthsForRegister(){
+    const now = new Date();
+    let startD;
+    try{ startD = new Date(data.settings.startDate+'T00:00:00'); }catch(e){ startD = now; }
+    if(isNaN(startD.getTime())) startD = now;
+    const months = new Set(listMonthsSince(startD, now));
+    Object.keys(data.days).forEach(d=>months.add(monthKey(d)));
+    return Array.from(months).sort().reverse();
+  }
+
   function renderEntriesList(){
     const wrap = document.getElementById('entriesList');
-    const dates = Object.keys(data.days).sort().reverse();
-    if(dates.length===0){
+    if(!expandedMonths){
+      expandedMonths = new Set([fmtDate(new Date()).slice(0,7)]);
+    }
+    const months = getAllMonthsForRegister();
+    if(months.length===0){
       wrap.innerHTML = '<div class="placeholder">No entries yet. Tap "+ Add / edit entry" to add one.</div>';
       return;
     }
-    let html = '<div class="entry-list-wrap">';
-    dates.forEach(dateStr=>{
-      const secs = data.days[dateStr];
-      const dow = WEEKDAYS[new Date(dateStr+'T00:00:00').getDay()].slice(0,3);
-      html += `<div class="entry-row" data-date="${dateStr}">
-        <div><span class="entry-date">${dateStr}</span><span class="entry-dow">${dow}</span></div>
-        <div class="entry-time mono">${fmtDurationHM(secs)}</div>
-      </div>`;
+    let html = '';
+    months.forEach(ym=>{
+      const days = getMonthDaysList(ym);
+      let monthTotal = 0;
+      days.forEach(d=>monthTotal += secondsForDayDisplay(d));
+      const isOpen = expandedMonths.has(ym);
+      const [y,m] = ym.split('-');
+      const monthLabel = new Date(Number(y), Number(m)-1, 1).toLocaleString('en-US',{month:'long', year:'numeric'});
+      html += `<div class="month-block">
+        <div class="month-header" data-month="${ym}">
+          <div class="month-name">${monthLabel}</div>
+          <div class="month-meta"><span class="month-total mono">${fmtDurationHM(monthTotal)}</span><span class="month-chevron">${isOpen?'\u25BE':'\u25B8'}</span></div>
+        </div>
+        <div class="month-days${isOpen?'':' collapsed'}">`;
+      days.forEach(d=>{
+        const secs = secondsForDayDisplay(d);
+        const dow = WEEKDAYS[new Date(d+'T00:00:00').getDay()].slice(0,3);
+        const isToday = d === fmtDate(new Date());
+        const liveTag = (isToday && data.running.active) ? ' <span class="live-dot"></span>' : '';
+        html += `<div class="entry-row" data-date="${d}">
+          <div><span class="entry-date">${d}</span><span class="entry-dow">${dow}</span>${liveTag}</div>
+          <div class="entry-time mono${secs===0?' zero-entry':''}">${fmtDurationHM(secs)}</div>
+        </div>`;
+      });
+      html += `</div></div>`;
     });
-    html += '</div>';
     wrap.innerHTML = html;
+    wrap.querySelectorAll('.month-header').forEach(h=>{
+      h.addEventListener('click', ()=>{
+        const ym = h.dataset.month;
+        if(expandedMonths.has(ym)) expandedMonths.delete(ym); else expandedMonths.add(ym);
+        renderEntriesList();
+      });
+    });
     wrap.querySelectorAll('.entry-row').forEach(row=>{
-      row.addEventListener('click', ()=> openEntryModal(row.dataset.date));
+      row.addEventListener('click', (e)=>{ e.stopPropagation(); openEntryModal(row.dataset.date); });
     });
   }
 
@@ -404,6 +464,22 @@
       save();
       if(tickHandle){ clearInterval(tickHandle); tickHandle=null; }
       renderAll(); flashSaved();
+    }
+  });
+  document.getElementById('btnExportBackup').addEventListener('click', ()=>{
+    try{
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hours-backup-${fmtDate(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Backup downloaded.');
+    }catch(e){
+      showToast('Could not create the backup file.');
     }
   });
 
