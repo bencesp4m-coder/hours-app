@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hours</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6C3CE0">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F1FA;
+    --surface:#FFFFFF;
+    --surface-2:#F1EEFB;
+    --line:#E6E1F5;
+    --text:#181322;
+    --text-dim:#8B8698;
+    --accent:#6C3CE0;
+    --accent-2:#9B6BFA;
+    --accent-soft:#EFE8FE;
+    --danger:#E4574B;
+    --ok:#1FAE6B;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--bg); color:var(--text);
+    font-family:'Poppins',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overscroll-behavior:none; user-select:none;
+  }
+  #app{
+    max-width:480px; margin:0 auto; min-height:100vh;
+    display:flex; flex-direction:column;
+    padding:22px 18px 0 18px; position:relative;
+  }
+  .mono{ font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace; }
+  .display-font{ font-family:'Baloo 2', 'Poppins', sans-serif; }
+
+  .topbar{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+  .topbar .eyebrow{ color:var(--accent); font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; }
+  .topbar .greet{ font-family:'Baloo 2',sans-serif; font-size:26px; font-weight:700; margin-top:4px; }
+  .avatar{
+    width:46px; height:46px; border-radius:14px;
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px;
+    box-shadow:0 6px 16px rgba(108,60,224,0.30);
+  }
+
+  .heroCard{
+    background:linear-gradient(150deg, var(--accent) 0%, var(--accent-2) 100%);
+    border-radius:26px; padding:22px 20px 24px 20px; color:#fff;
+    box-shadow:0 14px 30px rgba(108,60,224,0.28); margin-bottom:18px;
+  }
+  .heroCard .datepill{
+    display:inline-block; background:rgba(255,255,255,0.18); border-radius:999px;
+    padding:6px 14px; font-size:13px; font-weight:600; letter-spacing:.5px;
+  }
+  .heroCard .dow{ opacity:.85; font-size:12px; margin-top:6px; text-transform:uppercase; letter-spacing:1.5px; }
+
+  .clockWrap{ text-align:center; margin:18px 0 6px 0; }
+  .clock{ font-family:'Baloo 2',sans-serif; font-size:58px; font-weight:700; letter-spacing:1px; }
+  .clockLabel{ opacity:.85; font-size:12px; text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
+
+  .deltaRowWrap{ background:rgba(255,255,255,0.14); border-radius:16px; padding:14px 16px; margin-top:16px; }
+  .deltaRowWrap .drow{ display:flex; justify-content:space-between; padding:4px 0; font-size:14px; }
+  .deltaRowWrap .drow .k{ opacity:.85; }
+  .deltaRowWrap .drow .v{ font-weight:700; }
+
+  .heroBtnRow{ display:flex; gap:10px; margin-top:18px; }
+  .heroBtn{
+    flex:1; text-align:center; border-radius:16px; padding:16px; font-weight:700; font-size:16px;
+    cursor:pointer; transition:transform .08s ease;
+  }
+  .heroBtn:active{ transform:scale(0.97); }
+  .heroBtn.start{ background:#fff; color:var(--accent); }
+  .heroBtn.start.disabled{ background:rgba(255,255,255,0.35); color:rgba(255,255,255,0.7); }
+  .heroBtn.pause{ background:rgba(0,0,0,0.18); color:#fff; }
+  .heroBtn.pause.disabled{ opacity:.45; }
+
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:20px;
+    padding:18px 18px; margin-bottom:16px; box-shadow:0 4px 14px rgba(24,19,34,0.04);
+  }
+  .card .title{ color:var(--text-dim); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; font-weight:600; }
+  .delta-row{ display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; }
+  .delta-row .k{ color:var(--text-dim); font-size:14px; }
+  .delta-row .v{ font-size:17px; font-weight:700; }
+  .pos{ color:var(--ok); } .neg{ color:var(--danger); } .zero{ color:var(--text-dim); }
+
+  .nav{
+    margin-top:auto; display:flex; border-top:1px solid var(--line);
+    padding:12px 4px 18px 4px; position:sticky; bottom:0; background:var(--bg);
+  }
+  .nav div{
+    flex:1; text-align:center; font-size:11.5px; color:var(--text-dim);
+    padding:8px 2px; cursor:pointer; letter-spacing:.2px; font-weight:600;
+    border-radius:14px;
+  }
+  .nav div.active{ color:var(--accent); background:var(--accent-soft); }
+
+  .page{ display:none; flex:1; min-height:0; }
+  .page.active{ display:flex; flex-direction:column; }
+  .scrollarea{ flex:1; overflow-y:auto; padding-bottom:10px; -webkit-overflow-scrolling:touch; }
+  .placeholder{ color:var(--text-dim); font-size:14px; text-align:center; padding:40px 20px; }
+
+  .opt-group{ background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:18px; margin-bottom:14px; box-shadow:0 4px 14px rgba(24,19,34,0.04); }
+  .opt-group label{ display:block; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:8px; font-weight:600; }
+  .opt-group label:not(:first-child){ margin-top:14px; }
+  .opt-group input, .opt-group select{
+    width:100%; background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    border-radius:12px; padding:12px 14px; font-size:16px; font-family:'Poppins',inherit;
+  }
+  .opt-btn{
+    background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    border-radius:14px; padding:14px; text-align:center; font-size:14px; font-weight:600; margin-top:10px; cursor:pointer;
+  }
+  .opt-btn.danger{ color:var(--danger); }
+  .opt-btn.accent{ color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border-color:transparent; }
+  .opt-note{ font-size:12px; color:var(--text-dim); margin-top:8px; line-height:1.4; }
+  .save-msg{ text-align:center; color:var(--ok); font-size:13px; height:18px; margin-bottom:4px; font-weight:600; }
+
+  .entry-list-wrap{ background:var(--surface); border:1px solid var(--line); border-radius:20px; overflow:hidden; margin-bottom:20px; box-shadow:0 4px 14px rgba(24,19,34,0.04); }
+  .entry-row{ display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .entry-row:last-child{ border-bottom:none; }
+  .entry-date{ font-size:14px; font-weight:500; }
+  .entry-dow{ color:var(--text-dim); font-size:11px; margin-left:8px; text-transform:uppercase; letter-spacing:.5px; }
+  .entry-time{ font-size:15px; font-weight:700; color:var(--accent); }
+
+  .modal-overlay{ position:fixed; inset:0; background:rgba(24,19,34,0.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{ background:var(--surface); border-radius:22px; padding:22px; width:100%; max-width:360px; box-shadow:0 20px 50px rgba(24,19,34,0.25); }
+  .modal-box h3{ margin:0 0 4px 0; font-size:17px; font-family:'Baloo 2',sans-serif; }
+  .modal-box label{ display:block; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin:14px 0 6px 0; font-weight:600; }
+  .modal-box input{ width:100%; background:var(--surface-2); border:1px solid var(--line); color:var(--text); border-radius:12px; padding:12px 14px; font-size:16px; font-family:'Poppins',inherit; }
+  .modal-row{ display:flex; gap:10px; }
+  .modal-row > div{ flex:1; }
+  .modal-btns{ display:flex; gap:10px; margin-top:18px; }
+  .modal-btns .opt-btn{ flex:1; margin-top:0; text-align:center; }
+  .modal-delete{ margin-top:14px; text-align:center; color:var(--danger); font-size:13px; cursor:pointer; font-weight:600; }
+
+  .toast{
+    position:fixed; top:14px; left:50%; transform:translate(-50%,-140%);
+    background:var(--text); color:#fff;
+    padding:12px 18px; border-radius:14px; font-size:13px; z-index:100;
+    transition:transform .25s ease; max-width:90%; text-align:center; font-weight:500;
+  }
+  .toast.show{ transform:translate(-50%,0); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="toast" id="toast"></div>
+
+  <div class="page active" id="page-home">
+    <div class="topbar">
+      <div>
+        <div class="eyebrow">Work Hours</div>
+        <div class="greet" id="greetDisplay">Hi there</div>
+      </div>
+      <div class="avatar" id="avatarInit">H</div>
+    </div>
+
+    <div class="heroCard">
+      <div class="datepill" id="dateDisplay">--</div>
+      <div class="dow" id="dowDisplay">-</div>
+      <div class="clockWrap">
+        <div class="clock mono" id="clockDisplay">00:00</div>
+        <div class="clockLabel" id="clockLabel">Today's total</div>
+      </div>
+      <div class="deltaRowWrap">
+        <div class="drow"><div class="k">Monthly delta</div><div class="v mono" id="deltaMonthly">--</div></div>
+        <div class="drow"><div class="k">Sum delta</div><div class="v mono" id="deltaSum">--</div></div>
+      </div>
+      <div class="heroBtnRow">
+        <div class="heroBtn start" id="btnStart">START</div>
+        <div class="heroBtn pause" id="btnPause">Pause / End</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-stats">
+    <div class="scrollarea">
+      <div class="card">
+        <div class="title">Overall</div>
+        <div class="delta-row"><div class="k">Total worked</div><div class="v mono" id="statTotal">--</div></div>
+        <div class="delta-row"><div class="k">Weekdays</div><div class="v mono" id="statWeekday">--</div></div>
+        <div class="delta-row"><div class="k">Weekends</div><div class="v mono" id="statWeekend">--</div></div>
+      </div>
+      <div class="card">
+        <div class="title">Financial</div>
+        <div class="delta-row"><div class="k">Earned</div><div class="v mono" id="statEarned">--</div></div>
+        <div class="delta-row"><div class="k">Goal delta</div><div class="v mono" id="statGoalDelta">--</div></div>
+      </div>
+      <div class="opt-btn accent" id="btnAddEntry" style="text-align:center;">+ Add / edit entry</div>
+      <div id="entriesList" style="margin-top:14px;"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-report">
+    <div class="placeholder">Monthly report — coming soon.</div>
+  </div>
+
+  <div class="page" id="page-options">
+    <div class="scrollarea" style="padding-top:6px;">
+      <div class="save-msg" id="saveMsg"></div>
+      <div class="opt-group">
+        <label>Monthly goal (hours)</label>
+        <input type="number" id="optGoal" min="0" step="0.5">
+      </div>
+      <div class="opt-group">
+        <label>Measuring since</label>
+        <input type="date" id="optStart">
+        <div class="opt-note">The "Sum" delta on the home screen adds up every month's delta starting from this date.</div>
+      </div>
+      <div class="opt-group">
+        <label>Hourly wage</label>
+        <input type="number" id="optWage" min="0" step="0.01">
+        <label>Currency</label>
+        <select id="optCurrency">
+          <option value="EUR">EUR (€)</option>
+          <option value="USD">USD ($)</option>
+          <option value="CAD">CAD ($)</option>
+          <option value="HUF">HUF (Ft)</option>
+        </select>
+        <label>Financial goal</label>
+        <input type="number" id="optFinGoal" min="0" step="1">
+      </div>
+      <div class="opt-group">
+        <label>Reset</label>
+        <div class="opt-btn danger" id="btnResetSum">Reset Sum (sets start date to today)</div>
+        <div class="opt-btn danger" id="btnResetAll">Erase all tracked time</div>
+      </div>
+
+      <div class="opt-group" id="cloudSetupBlock">
+        <label>Cloud sync — Supabase project URL</label>
+        <input type="text" id="cloudUrl" placeholder="https://xxxx.supabase.co">
+        <label>Supabase anon key</label>
+        <input type="text" id="cloudKey" placeholder="eyJhbGciOi...">
+        <div class="opt-btn accent" id="btnCloudConnect">Connect project</div>
+      </div>
+
+      <div class="opt-group" id="cloudAuthBlock" style="display:none;">
+        <label>Email</label>
+        <input type="email" id="cloudEmail">
+        <label>Password</label>
+        <input type="password" id="cloudPassword">
+        <div class="opt-btn accent" id="btnCloudSignup">Sign up (first device)</div>
+        <div class="opt-btn accent" id="btnCloudLogin">Log in (other devices)</div>
+        <div class="opt-btn" id="btnCloudForget">Use a different project</div>
+        <div class="opt-note" id="cloudAuthNote"></div>
+      </div>
+
+      <div class="opt-group" id="cloudSignedInBlock" style="display:none;">
+        <label>Cloud sync</label>
+        <div class="opt-note" id="cloudStatus">Signed in.</div>
+        <div class="opt-btn accent" id="btnCloudSyncNow">Sync now</div>
+        <div class="opt-btn danger" id="btnCloudSignOut">Sign out (on this device)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="active" data-page="home">Home</div>
+    <div data-page="stats">Statistics</div>
+    <div data-page="report">Monthly report</div>
+    <div data-page="options">Options</div>
+  </div>
+
+  <div class="modal-overlay" id="entryModal">
+    <div class="modal-box">
+      <h3 id="modalTitle">Add / edit entry</h3>
+      <label>Date</label>
+      <input type="date" id="modalDate">
+      <div class="modal-row">
+        <div>
+          <label>Hours</label>
+          <input type="number" id="modalHours" min="0">
+        </div>
+        <div>
+          <label>Minutes</label>
+          <input type="number" id="modalMinutes" min="0" max="59">
+        </div>
+      </div>
+      <div class="modal-btns">
+        <div class="opt-btn" id="modalCancel">Cancel</div>
+        <div class="opt-btn accent" id="modalSave">Save</div>
+      </div>
+      <div class="modal-delete" id="modalDelete" style="display:none;">Delete entry</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
