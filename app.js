@@ -483,7 +483,7 @@
     if(supabaseLibLoading){ setTimeout(()=>loadSupabaseLib(cb), 300); return; }
     supabaseLibLoading = true;
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2';
     s.onload = ()=>{ supabaseLibLoading = false; cb(); };
     s.onerror = ()=>{ supabaseLibLoading = false; showToast('Could not reach the cloud library — check your internet connection.'); };
     document.head.appendChild(s);
