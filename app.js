@@ -197,7 +197,9 @@
     el.dowDisplay.textContent = WEEKDAYS[now.getDay()];
     const h = now.getHours();
     const greeting = h<12 ? 'Good morning' : (h<18 ? 'Good afternoon' : 'Good evening');
-    document.getElementById('greetDisplay').textContent = greeting;
+    const name = (data.settings.name || '').trim();
+    document.getElementById('greetDisplay').textContent = name ? `${greeting}, ${name}` : greeting;
+    document.getElementById('avatarInit').textContent = name ? name.charAt(0).toUpperCase() : 'H';
   }
 
   function renderClock(){
@@ -412,6 +414,7 @@
     });
   });
 
+  const optName = document.getElementById('optName');
   const optGoal = document.getElementById('optGoal');
   const optStart = document.getElementById('optStart');
   const optWage = document.getElementById('optWage');
@@ -420,6 +423,7 @@
   const saveMsg = document.getElementById('saveMsg');
 
   function loadOptionsForm(){
+    optName.value = data.settings.name || '';
     optGoal.value = data.settings.monthlyGoalHours;
     optStart.value = data.settings.startDate;
     optWage.value = data.settings.hourlyWage;
@@ -431,6 +435,10 @@
     saveMsg.textContent = 'Saved';
     setTimeout(()=>{ saveMsg.textContent=''; }, 1200);
   }
+  optName.addEventListener('change', ()=>{
+    data.settings.name = optName.value.trim();
+    save(); renderHeader(); flashSaved();
+  });
   optGoal.addEventListener('change', ()=>{
     const v = parseFloat(optGoal.value);
     data.settings.monthlyGoalHours = isNaN(v) ? 0 : v;
