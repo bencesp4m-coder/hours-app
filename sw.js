@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hours-app-v4';
+const CACHE_NAME = 'hours-app-v5';
 const APP_SHELL = ['./', './index.html', './app.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -31,6 +31,32 @@ self.addEventListener('fetch', (event) => {
         return resp;
       }).catch(() => cached);
       return cached || network;
+    })
+  );
+});
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try{ payload = event.data ? event.data.json() : {}; }
+  catch(e){ payload = { title: 'Work timer running', body: event.data ? event.data.text() : '' }; }
+  const title = payload.title || 'Work timer running';
+  const options = {
+    body: payload.body || '',
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
+    tag: 'work-tracker-reminder'
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow('./index.html');
     })
   );
 });

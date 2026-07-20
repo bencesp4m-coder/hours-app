@@ -742,6 +742,54 @@
     cloudSession = null; renderCloudUI();
   });
 
+  // ---------- push notifications ----------
+  const VAPID_PUBLIC_KEY = 'BOoAm3nbtIbdHFrD1LHvKyJDiyFirgS7IqXQsdpE3B8nVa0rGdtI2y8AyxfU5vW8sqIxumbIKwR5cw6yTxJhAV0';
+
+  function urlBase64ToUint8Array(base64String){
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  async function enablePush(){
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+      showToast('Push notifications are not supported in this browser.');
+      return;
+    }
+    if(!supabaseClient || !cloudSession){
+      showToast('Connect and log in to cloud sync first.');
+      return;
+    }
+    try{
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if(!sub){
+        const perm = await Notification.requestPermission();
+        if(perm !== 'granted'){ showToast('Notification permission denied.'); return; }
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      }
+      const json = sub.toJSON();
+      const { error } = await supabaseClient.from('push_subscriptions').upsert({
+        user_id: cloudSession.user.id,
+        endpoint: json.endpoint,
+        p256dh: json.keys.p256dh,
+        auth: json.keys.auth
+      }, { onConflict: 'endpoint' });
+      if(error) throw error;
+      document.getElementById('pushStatus').textContent = 'Push notifications are enabled on this device.';
+      showToast('Push notifications enabled.');
+    }catch(e){
+      showToast(e.message || 'Could not enable push notifications.');
+    }
+  }
+  document.getElementById('btnEnablePush').addEventListener('click', enablePush);
+
   // ---------- init ----------
   renderAll();
   if(data.running.active){
