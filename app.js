@@ -252,6 +252,7 @@
   }
 
   let expandedMonths = null;
+  let reportMonthYm = null;
 
   function secondsForDayDisplay(dateStr){
     let secs = data.days[dateStr] || 0;
@@ -332,6 +333,109 @@
     wrap.querySelectorAll('.entry-row').forEach(row=>{
       row.addEventListener('click', (e)=>{ e.stopPropagation(); openEntryModal(row.dataset.date); });
     });
+  }
+
+  // ---------- monthly report ----------
+  function getPrevMonthStr(ym){
+    let [y,m] = ym.split('-').map(Number);
+    m -= 1; if(m<1){ m=12; y-=1; }
+    return `${y}-${String(m).padStart(2,'0')}`;
+  }
+  function getNextMonthStr(ym){
+    let [y,m] = ym.split('-').map(Number);
+    m += 1; if(m>12){ m=1; y+=1; }
+    return `${y}-${String(m).padStart(2,'0')}`;
+  }
+  function earliestDataMonth(){
+    let earliest = data.settings.startDate ? monthKey(data.settings.startDate) : fmtDate(new Date()).slice(0,7);
+    Object.keys(data.days).forEach(d=>{ const mk = monthKey(d); if(mk < earliest) earliest = mk; });
+    return earliest;
+  }
+  function initReportMonth(){
+    if(reportMonthYm) return;
+    reportMonthYm = getPrevMonthStr(fmtDate(new Date()).slice(0,7));
+  }
+
+  function renderMonthlyReport(){
+    initReportMonth();
+    const ym = reportMonthYm;
+    const [y,m] = ym.split('-').map(Number);
+    const todayYm = fmtDate(new Date()).slice(0,7);
+    const monthLabel = new Date(y, m-1, 1).toLocaleString('en-US',{month:'long', year:'numeric'});
+    document.getElementById('reportMonthLabel').textContent = monthLabel + (ym===todayYm ? ' (in progress)' : '');
+
+    const earliest = earliestDataMonth();
+    document.getElementById('reportPrevBtn').classList.toggle('disabled', ym <= earliest);
+    document.getElementById('reportNextBtn').classList.toggle('disabled', ym >= todayYm);
+
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const lastDay = (ym === todayYm) ? new Date().getDate() : daysInMonth;
+    const dayData = [];
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const secs = (d<=lastDay) ? secondsForDayDisplay(dateStr) : null;
+      dayData.push({ day:d, dateStr, secs });
+    }
+    const trackedDays = dayData.filter(d=>d.secs!==null);
+    const totalSecs = trackedDays.reduce((sum,d)=>sum+d.secs,0);
+    const daysWorked = trackedDays.filter(d=>d.secs>0).length;
+    const avgSecsPerWorkedDay = daysWorked>0 ? totalSecs/daysWorked : 0;
+
+    const wage = parseFloat(data.settings.hourlyWage) || 0;
+    const currency = data.settings.currency || 'EUR';
+    const hours = totalSecs/3600;
+    const money = hours*wage;
+    const avgMoneyPerWorkedDay = daysWorked>0 ? money/daysWorked : 0;
+
+    const goal = parseFloat(data.settings.monthlyGoalHours) || 0;
+    const goalDelta = monthWorkedHours(ym) - goal;
+
+    document.getElementById('repTotal').textContent = fmtDurationHM(totalSecs);
+    document.getElementById('repDaysWorked').textContent = `${daysWorked} / ${trackedDays.length}`;
+    document.getElementById('repAvgTime').textContent = fmtDurationHM(avgSecsPerWorkedDay);
+    const gEl = document.getElementById('repGoalDelta');
+    gEl.textContent = fmtDeltaHrs(goalDelta);
+    gEl.className = 'v mono ' + deltaClass(goalDelta);
+    document.getElementById('repMoney').textContent = fmtMoneyPlain(money, currency);
+    document.getElementById('repAvgMoney').textContent = fmtMoneyPlain(avgMoneyPerWorkedDay, currency);
+
+    renderReportChart(dayData, goal, daysInMonth);
+  }
+
+  function renderReportChart(dayData, monthlyGoalHours, daysInMonth){
+    const wrap = document.getElementById('repChartWrap');
+    const barW = 16, gap = 7, leftPad = 6, rightPad = 6, topPad = 10, bottomPad = 22;
+    const chartH = 130;
+    const maxHoursRaw = Math.max(1, ...dayData.map(d => (d.secs||0)/3600));
+    const dailyGoalHours = daysInMonth>0 ? monthlyGoalHours/daysInMonth : 0;
+    const maxHours = Math.max(maxHoursRaw, dailyGoalHours) * 1.15;
+    const width = leftPad + rightPad + dayData.length*(barW+gap);
+    const height = topPad + chartH + bottomPad;
+
+    function yFor(hrs){ return topPad + chartH - (hrs/maxHours)*chartH; }
+
+    let bars = '';
+    dayData.forEach((d,i)=>{
+      const x = leftPad + i*(barW+gap);
+      const hrs = (d.secs||0)/3600;
+      const barH = (hrs/maxHours)*chartH;
+      const y = topPad + chartH - barH;
+      const weekendDay = isWeekend(d.dateStr);
+      const cls = weekendDay ? 'bar-weekend' : 'bar-weekday';
+      const opacity = d.secs===null ? 0 : (hrs===0 ? 0.15 : 1);
+      bars += `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(barH,0)}" rx="4" class="${cls}" opacity="${opacity}"></rect>`;
+      if(d.day===1 || d.day % 5 === 0 || d.day===dayData.length){
+        bars += `<text x="${x+barW/2}" y="${topPad+chartH+16}" font-size="9" class="chart-label" text-anchor="middle">${d.day}</text>`;
+      }
+    });
+
+    let goalLine = '';
+    if(monthlyGoalHours>0){
+      const goalY = yFor(dailyGoalHours);
+      goalLine = `<line x1="${leftPad}" y1="${goalY}" x2="${width-rightPad}" y2="${goalY}" class="chart-goal-line"></line>`;
+    }
+
+    wrap.innerHTML = `<div class="chart-scroll"><svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">${goalLine}${bars}</svg></div>`;
   }
 
   function startTicking(){
@@ -423,6 +527,7 @@
       document.getElementById(pages[item.dataset.page]).classList.add('active');
       if(item.dataset.page === 'options') loadOptionsForm();
       if(item.dataset.page === 'stats') renderStats();
+      if(item.dataset.page === 'report') renderMonthlyReport();
     });
   });
 
@@ -559,6 +664,17 @@
     }
   });
   document.getElementById('btnAddEntry').addEventListener('click', ()=>openEntryModal(null));
+
+  document.getElementById('reportPrevBtn').addEventListener('click', ()=>{
+    initReportMonth();
+    const candidate = getPrevMonthStr(reportMonthYm);
+    if(candidate >= earliestDataMonth()){ reportMonthYm = candidate; renderMonthlyReport(); }
+  });
+  document.getElementById('reportNextBtn').addEventListener('click', ()=>{
+    initReportMonth();
+    const candidate = getNextMonthStr(reportMonthYm);
+    if(candidate <= fmtDate(new Date()).slice(0,7)){ reportMonthYm = candidate; renderMonthlyReport(); }
+  });
 
   // ---------- cloud sync (Supabase) ----------
   const CLOUD_CFG_KEY = 'workTrackerCloudConfig';
