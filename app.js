@@ -246,20 +246,19 @@
   function computePastMonthsFinancialAverage(){
     const wage = parseFloat(data.settings.hourlyWage) || 0;
     const excluded = new Set(data.settings.excludedFinancialMonths || []);
-    const todayYm = fmtDate(new Date()).slice(0,7);
 
     let startD;
     try{ startD = new Date(data.settings.startDate + 'T00:00:00'); }catch(e){ startD = new Date(); }
     if(isNaN(startD.getTime())) startD = new Date();
 
     const allMonths = listMonthsSince(startD, new Date());
-    const pastMonths = allMonths.filter(ym => ym < todayYm && !excluded.has(ym));
+    const includedMonths = allMonths.filter(ym => !excluded.has(ym));
 
-    if(pastMonths.length === 0) return { avg: 0, count: 0 };
+    if(includedMonths.length === 0) return { avg: 0, count: 0 };
 
     let totalMoney = 0;
-    pastMonths.forEach(ym => { totalMoney += monthWorkedHours(ym) * wage; });
-    return { avg: totalMoney / pastMonths.length, count: pastMonths.length };
+    includedMonths.forEach(ym => { totalMoney += monthWorkedHours(ym) * wage; });
+    return { avg: totalMoney / includedMonths.length, count: includedMonths.length };
   }
 
   function renderStats(){
