@@ -139,6 +139,12 @@
   .month-meta{ display:flex; align-items:center; gap:10px; }
   .month-total{ font-size:14px; font-weight:700; color:var(--accent); }
   .month-chevron{ color:var(--text-dim); font-size:13px; width:14px; text-align:center; }
+  .month-fin-toggle{
+    width:24px; height:24px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700; cursor:pointer; border:1px solid var(--line);
+    color:var(--accent); background:var(--accent-soft); flex-shrink:0;
+  }
+  .month-fin-toggle.excluded{ color:var(--text-dim); background:var(--surface-2); text-decoration:line-through; }
   .month-days{ border-top:1px solid var(--line); }
   .month-days.collapsed{ display:none; }
   .month-days .entry-row{ padding:12px 18px; }
@@ -225,6 +231,7 @@
         <div class="title">Financial</div>
         <div class="delta-row"><div class="k">Earned</div><div class="v mono" id="statEarned">--</div></div>
         <div class="delta-row"><div class="k">Goal delta</div><div class="v mono" id="statGoalDelta">--</div></div>
+        <div class="opt-note" id="statFinancialNote"></div>
       </div>
       <div class="opt-btn accent" id="btnAddEntry" style="text-align:center;">+ Add / edit entry</div>
       <div id="entriesList" style="margin-top:14px;"></div>
@@ -249,6 +256,7 @@
         <div class="title">Financial</div>
         <div class="delta-row"><div class="k">Money made</div><div class="v mono" id="repMoney">--</div></div>
         <div class="delta-row"><div class="k">Average per worked day</div><div class="v mono" id="repAvgMoney">--</div></div>
+        <div class="opt-note" id="repFinExcludedNote" style="display:none;">This month is excluded from your Statistics financial totals (figures above are just for this month).</div>
       </div>
       <div class="card">
         <div class="title">Daily hours</div>

@@ -12,7 +12,8 @@
         hourlyWage: 0,
         currency: 'EUR',
         financialGoal: 0,
-        name: ''
+        name: '',
+        excludedFinancialMonths: []
       },
       days: {},
       running: { active:false, startTs:null, date:null },
@@ -229,6 +230,19 @@
     renderHeader(); renderClock(); renderDeltas(); renderButtons();
   }
 
+  function computeFinancialSeconds(){
+    const excluded = new Set(data.settings.excludedFinancialMonths || []);
+    let secs = 0;
+    for(const [dateStr, s] of Object.entries(data.days)){
+      if(excluded.has(monthKey(dateStr))) continue;
+      secs += s;
+    }
+    if(data.running.active && !excluded.has(monthKey(data.running.date))){
+      secs += Math.floor((Date.now()-data.running.startTs)/1000);
+    }
+    return secs;
+  }
+
   function renderStats(){
     processMidnightRollover();
     const { totalSecs, weekdaySecs, weekendSecs } = computeOverallStats();
@@ -236,7 +250,8 @@
     document.getElementById('statWeekday').textContent = fmtDurationHM(weekdaySecs);
     document.getElementById('statWeekend').textContent = fmtDurationHM(weekendSecs);
 
-    const hours = totalSecs/3600;
+    const financialSecs = computeFinancialSeconds();
+    const hours = financialSecs/3600;
     const wage = parseFloat(data.settings.hourlyWage) || 0;
     const currency = data.settings.currency || 'EUR';
     const earned = hours*wage;
@@ -247,6 +262,14 @@
     const gEl = document.getElementById('statGoalDelta');
     gEl.textContent = fmtMoneyDelta(goalDelta, currency);
     gEl.className = 'v mono ' + deltaClass(goalDelta);
+
+    const excludedCount = (data.settings.excludedFinancialMonths || []).length;
+    const noteEl = document.getElementById('statFinancialNote');
+    if(noteEl){
+      noteEl.textContent = excludedCount>0
+        ? `${excludedCount} month${excludedCount===1?'':'s'} excluded from these totals — toggle "$" next to a month below to change.`
+        : 'Tap "$" next to a month below to exclude it from these totals.';
+    }
 
     renderEntriesList();
   }
@@ -296,18 +319,24 @@
       wrap.innerHTML = '<div class="placeholder">No entries yet. Tap "+ Add / edit entry" to add one.</div>';
       return;
     }
+    const excludedMonths = data.settings.excludedFinancialMonths || [];
     let html = '';
     months.forEach(ym=>{
       const days = getMonthDaysList(ym);
       let monthTotal = 0;
       days.forEach(d=>monthTotal += secondsForDayDisplay(d));
       const isOpen = expandedMonths.has(ym);
+      const isExcluded = excludedMonths.includes(ym);
       const [y,m] = ym.split('-');
       const monthLabel = new Date(Number(y), Number(m)-1, 1).toLocaleString('en-US',{month:'long', year:'numeric'});
       html += `<div class="month-block">
         <div class="month-header" data-month="${ym}">
           <div class="month-name">${monthLabel}</div>
-          <div class="month-meta"><span class="month-total mono">${fmtDurationHM(monthTotal)}</span><span class="month-chevron">${isOpen?'\u25BE':'\u25B8'}</span></div>
+          <div class="month-meta">
+            <div class="month-fin-toggle${isExcluded?' excluded':''}" data-fin-month="${ym}" title="Exclude from financial totals">$</div>
+            <span class="month-total mono">${fmtDurationHM(monthTotal)}</span>
+            <span class="month-chevron">${isOpen?'\u25BE':'\u25B8'}</span>
+          </div>
         </div>
         <div class="month-days${isOpen?'':' collapsed'}">`;
       days.forEach(d=>{
@@ -323,6 +352,17 @@
       html += `</div></div>`;
     });
     wrap.innerHTML = html;
+    wrap.querySelectorAll('.month-fin-toggle').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const ym = btn.dataset.finMonth;
+        let excluded = data.settings.excludedFinancialMonths || [];
+        excluded = excluded.includes(ym) ? excluded.filter(x=>x!==ym) : excluded.concat([ym]);
+        data.settings.excludedFinancialMonths = excluded;
+        save();
+        renderStats();
+      });
+    });
     wrap.querySelectorAll('.month-header').forEach(h=>{
       h.addEventListener('click', ()=>{
         const ym = h.dataset.month;
@@ -398,6 +438,10 @@
     gEl.className = 'v mono ' + deltaClass(goalDelta);
     document.getElementById('repMoney').textContent = fmtMoneyPlain(money, currency);
     document.getElementById('repAvgMoney').textContent = fmtMoneyPlain(avgMoneyPerWorkedDay, currency);
+    const excludedNote = document.getElementById('repFinExcludedNote');
+    if(excludedNote){
+      excludedNote.style.display = (data.settings.excludedFinancialMonths || []).includes(ym) ? 'block' : 'none';
+    }
 
     renderReportChart(dayData, goal, daysInMonth);
   }
