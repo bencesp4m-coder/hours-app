@@ -243,6 +243,25 @@
     return secs;
   }
 
+  function computePastMonthsFinancialAverage(){
+    const wage = parseFloat(data.settings.hourlyWage) || 0;
+    const excluded = new Set(data.settings.excludedFinancialMonths || []);
+    const todayYm = fmtDate(new Date()).slice(0,7);
+
+    let startD;
+    try{ startD = new Date(data.settings.startDate + 'T00:00:00'); }catch(e){ startD = new Date(); }
+    if(isNaN(startD.getTime())) startD = new Date();
+
+    const allMonths = listMonthsSince(startD, new Date());
+    const pastMonths = allMonths.filter(ym => ym < todayYm && !excluded.has(ym));
+
+    if(pastMonths.length === 0) return { avg: 0, count: 0 };
+
+    let totalMoney = 0;
+    pastMonths.forEach(ym => { totalMoney += monthWorkedHours(ym) * wage; });
+    return { avg: totalMoney / pastMonths.length, count: pastMonths.length };
+  }
+
   function renderStats(){
     processMidnightRollover();
     const { totalSecs, weekdaySecs, weekendSecs } = computeOverallStats();
@@ -262,6 +281,22 @@
     const gEl = document.getElementById('statGoalDelta');
     gEl.textContent = fmtMoneyDelta(goalDelta, currency);
     gEl.className = 'v mono ' + deltaClass(goalDelta);
+
+    const { avg: avgPerMonth, count: pastMonthCount } = computePastMonthsFinancialAverage();
+    document.getElementById('statAvgPerMonth').textContent = pastMonthCount>0 ? fmtMoneyPlain(avgPerMonth, currency) : 'Not enough data yet';
+
+    const timeEl = document.getElementById('statTimeToGoal');
+    const remaining = goal - earned;
+    if(goal<=0){
+      timeEl.textContent = 'No goal set';
+    } else if(remaining<=0){
+      timeEl.textContent = 'Goal reached';
+    } else if(avgPerMonth<=0){
+      timeEl.textContent = 'Not enough data yet';
+    } else {
+      const monthsLeft = remaining/avgPerMonth;
+      timeEl.textContent = `~${monthsLeft.toFixed(1)} months`;
+    }
 
     const excludedCount = (data.settings.excludedFinancialMonths || []).length;
     const noteEl = document.getElementById('statFinancialNote');
