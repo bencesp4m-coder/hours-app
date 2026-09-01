@@ -247,11 +247,7 @@
     const wage = parseFloat(data.settings.hourlyWage) || 0;
     const excluded = new Set(data.settings.excludedFinancialMonths || []);
 
-    let startD;
-    try{ startD = new Date(data.settings.startDate + 'T00:00:00'); }catch(e){ startD = new Date(); }
-    if(isNaN(startD.getTime())) startD = new Date();
-
-    const allMonths = listMonthsSince(startD, new Date());
+    const allMonths = getAllMonthsForRegister();
     const includedMonths = allMonths.filter(ym => !excluded.has(ym));
 
     if(includedMonths.length === 0) return { avg: 0, count: 0 };

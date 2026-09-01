@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hours-app-v9';
+const CACHE_NAME = 'hours-app-v10';
 const APP_SHELL = ['./', './index.html', './app.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
